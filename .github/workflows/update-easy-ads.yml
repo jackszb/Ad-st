@@ -35,7 +35,7 @@ jobs:
 
       - name: Upload unparsed-lines review log (if any)
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: easy_ads_unparsed-log
           path: easy_ads_unparsed.log
