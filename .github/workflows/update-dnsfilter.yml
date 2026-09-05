@@ -41,10 +41,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- DNSFilter.list; then
+          git add DNSFilter.list
+          if git diff --cached --quiet; then
             echo "No changes to DNSFilter.list, skip commit."
           else
-            git add DNSFilter.list
             git commit -m "chore: update DNSFilter.list ($(date -u +'%Y-%m-%d'))"
             git push
           fi
