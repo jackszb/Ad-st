@@ -1,0 +1,59 @@
+name: Update easy_ads.list
+
+on:
+  schedule:
+    # 每天 UTC 03:00 (北京时间 11:00) 自动运行一次
+    - cron: '0 3 * * *'
+  workflow_dispatch: {}   # 支持在 Actions 页面手动触发
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-easy-ads
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate easy_ads.list
+        run: |
+          python3 scripts/update_easy_ads.py \
+            --output-dir . \
+            --write-review-log
+
+      - name: Upload unparsed-lines review log (if any)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: easy_ads_unparsed-log
+          path: easy_ads_unparsed.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Remove review log before commit
+        # 复核日志只作为 CI artifact 保留，不进仓库
+        run: rm -f easy_ads_unparsed.log
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add easy_ads.list
+          if git diff --cached --quiet; then
+            echo "easy_ads.list 无变化，跳过提交"
+            exit 0
+          fi
+          git commit -m "chore: update easy_ads.list ($(date -u +'%Y-%m-%d'))"
+          git push
