@@ -1,0 +1,50 @@
+name: Update DNSFilter.list
+
+on:
+  schedule:
+    # 每天 UTC 03:20 (北京时间 11:20) 自动运行一次
+    - cron: "20 3 * * *"
+  workflow_dispatch: {}   # 支持在 Actions 页面手动触发
+  push:
+    paths:
+      - "scripts/build_dnsfilter.py"
+      - ".github/workflows/update-dnsfilter.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-dnsfilter
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Build DNSFilter.list
+        run: python3 scripts/build_dnsfilter.py
+
+      - name: Show summary in job log
+        run: |
+          echo "### DNSFilter.list build summary" >> "$GITHUB_STEP_SUMMARY"
+          head -n 6 DNSFilter.list >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- DNSFilter.list; then
+            echo "No changes to DNSFilter.list, skip commit."
+          else
+            git add DNSFilter.list
+            git commit -m "chore: update DNSFilter.list ($(date -u +'%Y-%m-%d'))"
+            git push
+          fi
